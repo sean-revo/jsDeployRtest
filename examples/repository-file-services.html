@@ -1,0 +1,234 @@
+ <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <title>Revolution Analytics UI Library Examples: Repository File Services</title>
+    
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+    <link rel="stylesheet" type="text/css" href="../assets/base.css">
+    <link rel="stylesheet" type="text/css" href="../assets/examples.css">
+
+    <script type="text/javascript" src="../includes/yahoo-event-connection-json-min.js"></script>
+    <script type="text/javascript" src="../includes/sha1.js"></script>
+    <script type="text/javascript" src="../includes/revo-deployR-min.js"></script>
+
+<style type="text/css">
+</style>
+
+<!--end custom header content for this example-->
+
+<script type="text/javascript">
+//enable passthrough of errors from YUI Event:
+if ((typeof YAHOO !== "undefined") && (YAHOO.util) && (YAHOO.util.Event)) {
+YAHOO.util.Event.throwErrors = true;
+}
+</script>
+</head>
+
+<body>
+  <div id="rHeader">
+    <div id="headerContainer">
+        <span id="headeraL">
+         <h1>Revolution Analytics</h1>
+        </span>
+    </div>
+  </div>
+
+  <div id="doc-container" class="rev-content">
+    <div id="inner-container">
+      <div id="doc-main">
+        <div class="rev-inner-content">
+
+          <div class="login-logout">
+            <ul>
+               <li>User ID</li>
+               <li>             
+                 <input id="uid"/>
+                 <i>Enable autosave on login</i>: <input type="checkbox" id="auto-save-check"/>
+               </li>
+               <li>Password</li>
+               <li>
+                 <input type="password" id="pw"/>              
+               </li>
+               <li>
+                 <input type="button" id="user-login-button" value="login"/>
+                 <input type="button" id="user-logout-button" value="logout"/>
+               </li>
+            </ul>
+          </div>
+
+          <h2>Repository File Services</h2>
+          <ul>
+            <li>List - /r/repository/file/list
+              <div>
+                <select id="repo-file-list"></select>        
+                <input type="button" id="repo-file-list-button" value="List"/>
+              </div>
+            </li>
+            <li>Upload - /r/repository/file/upload
+              <div>
+                <form action="upload.php" enctype="multipart/form-data" method="post" id="repo-file-upload-form">
+                   <input type="file" name="file" id="repo-file-upload"/>
+                   <input type="button" id="repo-file-upload-button" value="Upload"/>
+                </form>
+              </div>
+            </li>
+            <li>Download - /r/repository/file/download
+              <div>
+                <input type="button" id="repo-download-file-button" value="Download"/>
+              </div>
+            </li>
+            <li>Delete - /r/repository/file/delete
+              <div>
+                <input type="button" id="repo-file-delete-button" value="Delete"/>
+              </div>
+            </li>
+          </ul>                 
+        </div>
+      <div>
+    </div>
+  </div>
+
+  <div id="subFooter">
+    <div id="footerLegal">
+      <p>Copyright &copy; 2010 Revolution Analytics. All rights reserved.</p>
+      <p>
+        <a href="http://www.revolutionanalytics.com/aboutus/legal.php">Privacy Policy</a>
+        <a href="http://www.revolutionanalytics.com/aboutus/legal.php">Copyright Policy</a>
+        <a href="http://info.revolutionanalytics.com/contact-us.html">Contact Us</a>
+      </p>
+    </div>
+  </div>
+
+<script type="text/javascript">
+(function() {
+
+var SESSION = null;
+var LOAD_OBJ = '';
+var REPO_OBJ_UPLOAD = '';
+var REPO_OBJ_FILENAME;
+var REPO_FILE_UPLOAD = '';
+var REPO_FILE_FILENAME = '';
+var isReg = false;
+
+var demo = {  
+
+  init : function() {
+      var logIn = function (response) {
+        var loggedIn = function (response) {
+          var session = response.deployr.response.session;
+          demo.test(session); alert("Success - login");
+        };
+        var failLogin = function(e) { alert("Fail - User Login: " + e.status + "  " + e.statusText); };
+        var callback = { success : loggedIn, failure: failLogin, scope: this, verbose : true };
+
+        var auto = ((document.getElementById('auto-save-check')).checked == 1 ? true : false);
+        var uid = document.getElementById('uid').value;
+        var pw = document.getElementById('pw').value;
+        R.util.DeployR.loginCreateSession(uid, pw, auto, callback);
+      }; // login
+      YAHOO.util.Event.on('user-login-button', 'click', logIn);
+
+      var logout = function (response) {
+        var done = function (response) { SESSION = null; alert("Success - logout"); };
+        var fail = function(e) { alert("Fail - User Logout: " + e.status + "  " + e.statusText); };
+        var callback = { success : done, failure: fail, scope: this, verbose : true };
+
+        R.util.DeployR.logout(callback);
+      }; // login
+      YAHOO.util.Event.on('user-logout-button', 'click', logout);
+  },
+
+  test : function (session) {
+       if (isReg) { return; }
+       SESSION = session;
+
+       /////////////////////////////////////
+       // Repository File
+       ////////////////////////////////////
+
+       // Repository File List
+       var repoFileList = function(e) {
+         var done = function (result) {
+           var el = document.getElementById('repo-file-list');
+           for (var index = 0; index < el.options.length; index++) {
+             el.options[index] = null;
+           }
+           var index = 0;
+           for (var file in result.deployr.response.files) {
+             var objFile = result.deployr.response.files[file];
+             var label = objFile.descr + " -- " + objFile.value;
+             el.options[index] = new Option(label, index);
+             index++;
+           }
+         };
+
+         var fail = function (e) { alert("Fail - Repo File List: " + e.status + "  " +  e.statusText); }
+         var callback = { success : done, failure: fail, scope : this, verbose : true };
+
+         R.util.DeployR.listRepoFiles(callback);
+       };
+       YAHOO.util.Event.on('repo-file-list-button', 'click', repoFileList);
+
+       // Repository File Upload
+       var repoFileUpload = function(e) {
+         var done = function (result) {
+           REPO_FILE_UPLOAD = result.deployr.response.files[REPO_FILE_FILENAME].value;
+           alert("Repo File Upload - Success");
+         };
+
+         var fail = function (e) { alert("Fail - Repo File Upload: " + e.status + "  " +  e.statusText); }
+         var callback = { success : done, failure: fail, scope : this, verbose : true };
+
+         REPO_FILE_FILENAME = demo.getFileName('repo-file-upload');
+         var fileName = REPO_FILE_FILENAME;
+         if (!fileName || fileName.length == 0) { alert("First - Upload a Repo File!"); return; }
+
+         R.util.DeployR.uploadRepoFile('repo-file-upload-form', fileName, SESSION, callback);
+       };
+       YAHOO.util.Event.on('repo-file-upload-button', 'click', repoFileUpload);
+
+       // Repository File Download
+       var repoFileDownload = function(e) {
+         var done = function (result) { alert("Repo File Download - Success"); };
+
+         var fail = function (e) { alert("Fail - Repo File Download: : " + e.status + "  " +  e.statusText); }
+         var callback = { success : done, failure: fail, scope : this, verbose : true };
+
+         var fileName = REPO_FILE_FILENAME;
+         if (!fileName || fileName.length == 0) { alert("First - Upload a Repo File!"); return; }
+
+         R.util.DeployR.downloadRepoFile(fileName, REPO_FILE_UPLOAD, callback);
+       };
+       YAHOO.util.Event.on('repo-download-file-button', 'click', repoFileDownload);
+
+       // Repository File Delete
+       var repoFileDelete = function(e) {
+         var done = function (result) { alert("Repo File Delete - Success"); }        
+         var fail = function (e) { alert("Fail - Repo File Delete: " + e.status + "  " +  e.statusText); }
+         var callback = { success : done, failure: fail, scope : this, verbose : true };
+
+         R.util.DeployR.deleteRepoFile(REPO_FILE_UPLOAD, callback);
+       };
+       YAHOO.util.Event.on('repo-file-delete-button', 'click', repoFileDelete);
+
+       isReg = true;
+  
+  }, // end test
+
+  getFileName: function (id) {
+      var p = document.getElementById(id).value;
+      var t = p.replace(/\\/g,'<backslash>');
+       t = t.split('<backslash>');
+       return (t[t.length-1]); // last token is fileName
+  }
+
+};
+
+demo.init();
+
+})();
+</script>
+
+</body>
+</html>

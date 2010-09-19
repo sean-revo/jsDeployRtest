@@ -1,0 +1,288 @@
+ <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <title>Revolution Analytics UI Library Examples: Session File Services</title>
+    
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+    <link rel="stylesheet" type="text/css" href="../assets/base.css">
+    <link rel="stylesheet" type="text/css" href="../assets/examples.css">
+
+    <script type="text/javascript" src="../includes/yahoo-event-connection-json-min.js"></script>
+    <script type="text/javascript" src="../includes/sha1.js"></script>
+    <script type="text/javascript" src="../includes/revo-deployR-min.js"></script>
+
+<style> #repo-obj-list { width:150px } </style>
+
+<script type="text/javascript">
+//enable passthrough of errors from YUI Event:
+if ((typeof YAHOO !== "undefined") && (YAHOO.util) && (YAHOO.util.Event)) {
+YAHOO.util.Event.throwErrors = true;
+}
+</script>
+</head>
+
+<body>
+  <div id="rHeader">
+    <div id="headerContainer">
+        <span id="headeraL">
+         <h1>Revolution Analytics</h1>
+        </span>
+    </div>
+  </div>
+
+  <div id="doc-container" class="rev-content">
+    <div id="inner-container">
+      <div id="doc-main">
+        <div class="rev-inner-content">
+          <div class="login-logout">
+            <ul>
+               <li>User ID</li>
+               <li>             
+                 <input id="uid"/>
+                 <i>Enable autosave on login</i>: <input type="checkbox" id="auto-save-check"/>
+                 <span id="user-login-status"></span>
+               </li>
+               <li>Password</li>
+               <li>
+                 <input type="password" id="pw"/>
+                 <span id="user-logout-status"></span>
+               </li>
+               <li>
+                 <input type="button" id="user-login-button" value="login"/>
+                 <input type="button" id="user-logout-button" value="logout"/>
+               </li>
+             </ul>
+          </div>
+          <h2>Session File Services</h2>
+          <ul>
+            <li>List - /r/session/file/list
+              <div>
+                <select id="session-file-list"></select>
+                <input type="button" id="session-file-list-button" value="List"/>
+              </div>
+            </li>
+            <li>Upload - /r/session/file/upload
+              <div>
+                <form action="upload.php" enctype="multipart/form-data" method="post" id="session-file-upload-form">
+                  <input type="file" name="file" id="session-file-upload-file"/>
+                  <input type="button" id="session-upload-file-button" value="Upload"/>
+                </form>
+              </div>
+            </li>
+           <li>Download - /r/session/file/download
+             <div>
+               <input type="button" id="session-download-file-button" value="Download"/>
+            </div>
+          </li>
+          <li>Delete - /r/session/file/delete
+            <div>
+              <!--<input id ="session-file-delete-name"></input> -->
+              <input type="button" id="session-file-delete-button" value="Delete"/>
+            </div>
+          </li>
+          <li>Save - /r/session/file/save
+            <div style="font-weight:normal;">
+              <!--Session: <input id="session-file-save-session" class="sideBySide" type="text" /><br/>-->
+               Name:&nbsp; &nbsp;<input id="session-file-save-name" class="sideBySide" type="text" /><br />
+               Desc: &nbsp;&nbsp; <input id="session-file-save-descr" class="sideBySide" type="text" /><br />
+              <input type="button" id="session-file-save-button" value="Save"/>
+            </div>
+          </li>
+          <li>Load - /r/session/file/load
+            <div>
+              <select id="s-repo-file-list"> </select>
+              <input title="List Repository Files" type="button" id="s-repo-file-list-button" value="List Repo Files"/>
+              <input type="button" id="session-file-load-button" value="Load"/>
+            </div>
+          </li>
+          </ul>
+        </div>
+      <div>
+    </div>
+  </div>
+
+  <div id="subFooter">
+    <div id="footerLegal">
+      <p>Copyright &copy; 2010 Revolution Analytics. All rights reserved.</p>
+      <p>
+        <a href="http://www.revolutionanalytics.com/aboutus/legal.php">Privacy Policy</a>
+        <a href="http://www.revolutionanalytics.com/aboutus/legal.php">Copyright Policy</a>
+        <a href="http://info.revolutionanalytics.com/contact-us.html">Contact Us</a>
+      </p>
+    </div>
+  </div>
+
+<script type="text/javascript">
+(function() {
+
+var SESSION = null;
+var SESSION_FILE_FILENAME = '';
+var isReg = false;
+
+var demo = {  
+
+    init : function() {
+
+      var logIn = function (response) {
+        var loggedIn = function (response) {
+          var session = response.deployr.response.session;
+          demo.test(session); alert("Success - login");
+        };
+        var failLogin = function(e) { alert("Fail - User Login: " + e.status + "  " + e.statusText); };
+        var callback = { success : loggedIn, failure: failLogin, scope: this, verbose : true };
+
+        var auto = ((document.getElementById('auto-save-check')).checked == 1 ? true : false);
+        var uid = document.getElementById('uid').value;
+        var pw = document.getElementById('pw').value;
+        R.util.DeployR.loginCreateSession(uid, pw, auto, callback);
+      }; // login
+      YAHOO.util.Event.on('user-login-button', 'click', logIn);
+
+       var logout = function (response) {
+        var done = function (response) { SESSION = null; alert("Success - logout"); };
+        var fail = function(e) { alert("Fail - User Logout: " + e.status + "  " + e.statusText); };
+        var callback = { success : done, failure: fail, scope: this, verbose : true };
+
+        R.util.DeployR.logout(callback);
+      }; // login
+      YAHOO.util.Event.on('user-logout-button', 'click', logout);
+    },
+
+    test : function (session) {
+       if (isReg) { return; }
+       SESSION = session;
+
+       /////////////////////////////////////
+       // Session File Service
+       ////////////////////////////////////
+       var sessionFile = new R.session.File();
+
+       // Session File List
+       var sessionFileList = function(e) {
+         var done = function (result) {
+            var el = document.getElementById('session-file-list');
+            for (var index = 0; index < el.options.length; index++) { el.options[index] = null; }
+            for (var index = 0; index < result.length; index++) {
+              var file = result[index].file;
+              var name = result[index].name;
+              el.options[index] = new Option(name + " --- " + file, index);
+            }
+         };
+
+         var fail = function (e) { alert("Fail - Session File List: " + e.status + "  " + e.statusText); }
+         var callback = { success : done, failure: fail, scope : this, verbose : false };
+
+         R.util.DeployR.listSessionFiles(SESSION, callback);
+       };
+       YAHOO.util.Event.on('session-file-list-button', 'click', sessionFileList);
+
+       // Session File Upload
+       var sessionFileUpload = function(e) {
+         var done = function (result) { alert("Session File Upload - Success"); };
+         var fail = function (e) { alert("Fail - Session File Upload: " + e.status + "  " + e.statusText); }
+         var callback = { success : done, failure: fail, scope : this, verbose : true };
+
+         SESSION_FILE_FILENAME = demo.getFileName('session-file-upload-file');
+         var fileName = SESSION_FILE_FILENAME;
+         R.util.DeployR.uploadSessionFile('session-file-upload-form', fileName, SESSION, callback);
+       };
+       YAHOO.util.Event.on('session-upload-file-button', 'click', sessionFileUpload);
+
+       // Session File Download
+       var sessionFileDownload = function(e) {
+         var done = function (result) { alert("Session File Download - Success"); };         
+
+         var fail = function (e) { alert("Fail - Session File Download: " + e.status + "  " + e.statusText); }
+         var callback = { success : done, failure: fail, scope : this, verbose : false };
+
+         SESSION_FILE_FILENAME = demo.getFileName('session-file-upload-file');
+         var fileName = SESSION_FILE_FILENAME;
+         if (!fileName || fileName.length == 0) { alert("First - Upload a Session File!"); return; }
+
+         R.util.DeployR.downloadSessionFile(SESSION, fileName, callback);
+       };
+       YAHOO.util.Event.on('session-download-file-button', 'click', sessionFileDownload);
+
+       // Session File Delete
+       var sessionFileDelete = function(e) {
+
+         var done = function (result) { alert("Session File Delete - Success"); };         
+         var fail = function (e) { alert("Fail - Session File Delete: " + e.status + "  " + e.statusText); }
+         var callback = { success : done, failure: fail, scope : this, verbose : true };
+
+         var fileName = SESSION_FILE_FILENAME;
+         if (!fileName || fileName.length == 0) { alert("First - Upload a Session File!"); return; }
+         R.util.DeployR.deleteSessionFile(SESSION, fileName, callback);
+       };
+       YAHOO.util.Event.on('session-file-delete-button', 'click', sessionFileDelete);
+
+       // Session File Save
+       var sessionFileSave = function(e) {
+         var done = function (result) { alert("Session File Save - Success"); };
+
+         var fail = function (e) { alert("Fail - Session File Save: " + e.status + "  " + e.statusText); }
+         var callback = { success : done, failure: fail, scope : this, verbose : true };
+
+         var fileName = document.getElementById('session-file-save-name').value;
+         var descr = document.getElementById('session-file-save-descr').value;
+         R.util.DeployR.saveSessionFile(SESSION, fileName, descr, callback);
+       };
+       YAHOO.util.Event.on('session-file-save-button', 'click', sessionFileSave);
+
+       // Session File Load
+       var sessionFileRepoList = function (e) {
+
+         var done = function (result) {
+           var el = document.getElementById('s-repo-file-list');
+           for (var index = 0; index < el.options.length; index++) {
+             el.options[index] = null;
+           }
+
+           var index = 0;
+           for (var file in result.deployr.response.files) {
+             var objFile = result.deployr.response.files[file];
+             var label = file;
+             el.options[index] = new Option(label, objFile.value);
+             index++;
+           }
+         };
+
+         var fail = function (e) { alert("Fail - Repo File List: " + e.status + "  " + e.statusText); }
+         var callback = { success : done, failure: fail, scope : this, verbose : true };
+
+         R.util.DeployR.listRepoFiles(callback);
+       };
+       YAHOO.util.Event.on('s-repo-file-list-button', 'click', sessionFileRepoList);
+
+       var sessionFileLoad = function (e) {
+         var el = document.getElementById('s-repo-file-list');
+         var repoId = el.options[el.selectedIndex].value;
+
+         var done = function (result) { alert("Session File Load - Success"); };
+         var fail = function (e) { alert("Fail - Session File Load: " + e.status + "  " + e.statusText); }
+         var callback = { success : done, failure: fail, scope : this, verbose : true };
+
+         R.util.DeployR.loadSessionFile(SESSION, repoId, callback);
+       };
+       YAHOO.util.Event.on('session-file-load-button', 'click', sessionFileLoad);
+
+       isReg = true;
+    }, // end test
+
+    getFileName: function (id) {
+      var p = document.getElementById(id).value;
+      var t = p.replace(/\\/g,'<backslash>');
+       t = t.split('<backslash>');
+       return (t[t.length-1]); // last token is fileName
+    }
+
+};
+
+demo.init();
+
+})();
+</script>
+
+</body>
+</html>

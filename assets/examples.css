@@ -1,0 +1,50 @@
+#rev-inner-content {
+ padding-bottom:20px;
+}
+
+li div {
+ padding:15px 10px 10px;
+}
+
+li div span {
+ padding-left: 10px;
+ color:#5590D2;
+}
+
+li {
+ list-style:none outside none;
+ color: #666666;
+ font-weight:bold;
+ padding-bottom:15px;
+}
+
+h1 {
+ color:#FF6633;
+ font-size:250%;
+ margin:0 0 0.4em;
+}
+
+h2 {
+ padding-top:30px;
+}
+
+#doc-container {
+ margin:2em;
+}
+ 
+#headerContainer {
+ height:6.15em;
+ margin-right:auto;
+ padding-top:5px;
+ width:71.8em;
+ margin:2em;
+}
+
+.login-logout { 
+  background-color:#EDF5FF;
+}
+
+.login-logout li {
+ padding-bottom:3px;
+ padding:3px 4px 5px 6px;
+}

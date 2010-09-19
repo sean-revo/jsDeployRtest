@@ -1,0 +1,111 @@
+jsDeployR Release Notes
+
+** Know Issues **
+
+* No unit tests
+
+-----------------------------------
+
+*** version 1.0 ***
+
+* Major refactor of the initial JSDeployR.js module, including:
+
+  - Replaced Ext Core with YUI 2.8.1, with plans to update to YUI 3
+  - Changed file name from JSDeployR.js to deployR.js, deployR-transaction.js
+  - Added JSDocs comments and documentation
+  - Added simple example HTML pages for each API
+  - Included compressed JavaScript files
+
+* Additions to expose a new set of  APIs:
+
+ - Session Object Services -
+
+   - /r/session/object/push
+   - /r/session/object/upload
+
+ - Session File Services -
+
+   - /r/session/file/list
+   - /r/session/file/upload 
+   - /r/session/file/download
+   - /r/session/file/delete
+   - /r/session/file/save
+   - /r/session/file/load
+
+ - Session Artifact Services -
+
+   - /r/session/artifact/list 
+   - /r/session/artifact/download
+   - /r/session/artifact/delete
+
+ - Repository Object Services -
+
+   - /r/repository/object/upload
+   - /r/repository/object/download
+
+ - Repository File Services -
+
+   - /r/repository/file/list 
+   - /r/repository/file/upload 
+   - /r/repository/file/download
+   - /r/repository/file/delete
+
+ - User Services 
+
+   - /r/user/live
+
+*** version beta 1.0 ***
+
+* Inital module exposing the following APIs:
+ 
+ - Session Services -
+
+   - /r/session/create
+   - /r/session/close
+   - /r/session/ping
+   - /r/session/execute/code
+   - /r/session/execute/script
+   - /r/session/output
+   - /r/session/history
+   - /r/session/workspace/save
+   - /r/session/project/save
+
+ - Session Object Services -
+
+   - /r/session/object/get
+   - /r/session/object/save
+   - /r/session/object/delete
+   - /r/session/object/load
+
+ - Session File Services -
+
+   - /r/file/upload
+
+ - Repository Object Services -
+
+   - /r/repository/object/list
+   - /r/repository/object/delete
+
+ - Project Services -
+
+   - /r/project/list
+   - /r/project/load
+   - /r/project/delete
+
+ - User Services -
+
+   - /r/user/autosave
+   - /r/user/login
+   - /r/user/logout
+   - /r/user/whoami
+
+ - R Script Service -
+
+   - /r/script/execute
+   - /r/script/list
+
+* Inital beta release
+
+This module defines the RevoDeployR JavaScript client libraries used to 
+interact with the publicly available RevoDeployR R Web Service APIs. 
+

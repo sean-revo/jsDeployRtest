@@ -1,0 +1,248 @@
+ <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <title>Revolution Analytics UI Library Examples: Session Services</title>
+    
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+    <link rel="stylesheet" type="text/css" href="../assets/base.css">
+    <link rel="stylesheet" type="text/css" href="../assets/examples.css">
+
+    <script type="text/javascript" src="../includes/yahoo-event-connection-json-min.js"></script>
+    <script type="text/javascript" src="../includes/sha1.js"></script>
+    <script type="text/javascript" src="../includes/revo-deployR-min.js"></script>
+
+<style type="text/css">
+</style>
+
+<!--end custom header content for this example-->
+
+<script type="text/javascript">
+//enable passthrough of errors from YUI Event:
+if ((typeof YAHOO !== "undefined") && (YAHOO.util) && (YAHOO.util.Event)) {
+YAHOO.util.Event.throwErrors = true;
+}
+</script>
+</head>
+
+<body>
+  <div id="rHeader">
+    <div id="headerContainer">
+        <span id="headeraL">
+         <h1>Revolution Analytics</h1>
+        </span>
+    </div>
+  </div>
+
+  <div id="doc-container" class="rev-content">
+    <div id="inner-container">
+      <div id="doc-main">
+        <div class="rev-inner-content">
+          <div class="login-logout">
+            <ul>
+              <li>User ID</li>
+              <li>             
+                <input id="uid"/>
+                <i>Enable autosave on login</i>: <input type="checkbox" id="auto-save-check"/>
+              </li>
+              <li>Password</li>
+              <li>
+                <input type="password" id="pw"/>                 
+              </li>
+              <li>
+                <input type="button" id="user-login-button" value="login"/>
+                <input type="button" id="user-logout-button" value="logout"/>
+              </li>
+            </ul>
+          </div>
+
+          <h2>Session Services</h2>
+          <ul>
+            <li>Create - /r/session/create
+              <div><input type="button" id="session-create-button" value="Create"/></div>
+            </li>
+            <li>Close - /r/session/close
+              <div><input type="button" id="session-close-button" value="Close"/></div>
+            </li>
+            <li>Ping -/r/session/ping
+              <div><input type="button" id="session-ping-button" value="Ping"/></div>
+            </li>
+            <li>Execute Code - /r/session/execute/code
+              <div>
+                <input type="button" id="session-exe-code-button" value="Execute R Code"/>
+              </div>
+            </li>
+            <li>Execute Script - /r/session/execute/script
+              <div>             
+                <input type="button" id="session-exe-script-button" value="Execute R Script"/>
+              </div>
+            </li>
+            <li>Output - /r/session/output
+              <div><input type="button" id="session-console-output-button" value="Console Output"/></div>
+            </li>
+            <li>History - /r/session/history
+              <div><input type="button" id="session-command-history-button" value="Command History"/></div>
+            </li>
+            <li> Save Workspace - /r/session/workspace/save
+              <div>
+                <i>Describe Workspace for Saving</i>: <input id="session-save-workspace"/>
+                <input type="button" id="session-save-workspace-button" value="Save as Workspace"/>
+              </div>
+            </li>
+            <li> Save Project - /r/session/project/save
+              <div>
+               <i>Describe Project for Saving</i>: <input id="session-save-project"/>
+               <input type="button" id="session-save-project-button" value="Save as Project"/>
+              </div>
+            </li>
+          </div>
+        <div>
+      </div>
+  </div>
+
+  <div id="subFooter">
+    <div id="footerLegal">
+      <p>Copyright &copy; 2010 Revolution Analytics. All rights reserved.</p>
+      <p>
+        <a href="http://www.revolutionanalytics.com/aboutus/legal.php">Privacy Policy</a>
+        <a href="http://www.revolutionanalytics.com/aboutus/legal.php">Copyright Policy</a>
+        <a href="http://info.revolutionanalytics.com/contact-us.html">Contact Us</a>
+      </p>
+    </div>
+  </div>
+
+<script type="text/javascript">
+(function() {
+
+var SESSION = null;
+
+var demo = {  
+
+    init : function() {
+
+       var logIn = function (response) {          
+        var loggedIn = function (response) { demo.test(); alert("Success - login"); };          
+        var failLogin = function(e) { alert("Fail - User Login: " + e.status + "  " + e.statusText); };
+        var callback = { success : loggedIn, failure: failLogin, scope: this, verbose : true };
+        
+        var auto = ((document.getElementById('auto-save-check')).checked == 1 ? true : false);
+        var uid = document.getElementById('uid').value;
+        var pw = document.getElementById('pw').value;
+        R.util.DeployR.login(uid, pw, auto, callback);
+      }; // login
+      YAHOO.util.Event.on('user-login-button', 'click', logIn);   
+
+       var logout = function (response) {          
+        var done = function (response) { alert("Success - logout"); }; 
+        var fail = function(e) { alert("Fail - User Logout: " + e.status + "  " + e.statusText); };
+        var callback = { success : done, failure: fail, scope: this, verbose : true };
+
+        R.util.DeployR.logout(callback);
+      }; // login
+      YAHOO.util.Event.on('user-logout-button', 'click', logout);   
+  },
+
+  test : function () {
+     if (SESSION) { return; }
+
+     ////////////////////
+     // Session Services
+     ////////////////////
+
+      // Create Session
+      var createSession = function(e) {
+          var done = function (result) {
+            SESSION = result;
+            alert("Success - Create Session: " + SESSION);
+          };
+          var fail = function(e) { alert("Fail - Create Session: " + e.status + " " + e.statusText); }
+
+          var callback = { success : done, failure: fail, scope : this, verbose : false };
+          R.util.DeployR.createSession(callback);
+        };
+        YAHOO.util.Event.on('session-create-button', 'click', createSession);
+
+        // CloseSession
+        var closeSession = function(e) {
+         var done = function (result) {
+           alert("Success - Session '" + SESSION + "' closed"); 
+         };
+         var fail = function(e) { alert("Fail - Close Session: " + e.status + " " + e.statusText); }
+         var callback = { success : done, failure: fail, scope : this, verbose : true };
+         R.util.DeployR.closeSession(SESSION, callback);
+       };
+       YAHOO.util.Event.on('session-close-button', 'click', closeSession);
+
+       // Ping Session
+       var pingSession = function(e) {
+         var done = function (result) {
+           alert("Ping Success - Session '" + SESSION + "' alive"); 
+         };
+         var fail = function(e) { alert("Fail - Ping Session: " + e.status + " " + e.statusText); }
+
+         var callback = { success : done, failure: fail, scope : this, verbose : true };
+         R.util.DeployR.pingSession(SESSION, callback);
+       };
+       YAHOO.util.Event.on('session-ping-button', 'click', pingSession);
+
+       // Output Session
+       var outputSession = function(e) {
+         var done = function (result) {
+           alert("Output Success - Session '" + SESSION); 
+         };
+         var fail = function(e) { alert("Fail - Output Session: " + e.status + " " + e.statusText); }
+
+         var callback = { success : done, failure: fail, scope : this, verbose : true };
+         R.util.DeployR.getSessionOutput(SESSION, callback);
+       };
+       YAHOO.util.Event.on('session-console-output-button', 'click', outputSession);
+
+       // History Session
+       var historySession = function(e) {
+         var done = function (result) {
+           alert("History Success - Session '" + SESSION); 
+         };
+         var fail = function(e) { alert("Fail - History Session: " + e.status + " " + e.statusText); }
+         var callback = { success : done, failure: fail, scope : this, verbose : true };
+         R.util.DeployR.getSessionHistory(SESSION, callback);
+       };
+       YAHOO.util.Event.on('session-command-history-button', 'click', historySession);
+
+       // Save Workspace Session
+       var saveWSSession = function(e) {
+         var done = function (result) {
+           alert("Save Workspace Success - Session '" + SESSION); 
+         };
+         var fail = function(e) { alert("Fail - Save Workspace Session: " + e.status + " " + e.statusText); }
+
+         var callback = { success : done, failure: fail, scope : this, verbose : true };
+
+         var descr = document.getElementById('session-save-project').value;
+         R.util.DeployR.saveSessionWorkspace(SESSION, descr, callback);
+       };
+       YAHOO.util.Event.on('session-save-workspace-button', 'click', saveWSSession);
+
+       // Save Project Session
+       var saveProjectSession = function(e) {
+         var done = function (result) {
+           alert("Save Project Success - Session '" + SESSION); 
+         };
+         var fail = function(e) { alert("Fail - Save Project Session" + e.status + " " + e.statusText); }
+
+         var callback = { success : done, failure: fail, scope : this, verbose : true };
+         var descr = document.getElementById('session-save-project').value;
+         R.util.DeployR.saveSessionProject(SESSION, descr, callback);
+       };
+       YAHOO.util.Event.on('session-save-project-button', 'click', saveProjectSession);
+
+  } // end test
+
+};
+
+demo.init();
+
+})();
+</script>
+
+</body>
+</html>

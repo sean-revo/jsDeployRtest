@@ -1,0 +1,92 @@
+==============================================================================
+RevoDeployR UI Libraries
+==============================================================================
+
+NAME
+
+  RevoDeployR UI Libraries - Revolution Analytics
+
+SYNOPSIS
+
+ /jsDeployR
+
+    assets/       -> Base css for the examples
+    build/        -> Source + minified versions
+    docs/         -> JavaScript Docs - Class/File documentation
+    examples/     -> Simple example HTML pages of the 41+ different APIS
+    includes/     -> Necessary libraries and dependencies (deployR, YUI, SHA1)
+    LICENSE/      -> RevoDeployR UI Libraries - Apache License Version 2.0  
+    releasenotes/ -> Notes on this release and changes from the previous
+    tests/        -> Empty for now, unit tests not be included in the release
+
+DESCRIPTION
+
+  This module defines the RevoDeployR JavaScript UI utility libraries used to
+  interact with the publicly available RevoDeployR R Web Service APIs.
+
+DEPENDENCIES
+
+  RevoDeployR UI Libraries makes use of the YUI 2.8.1 Connection Manager, JSON Utility, 
+  and their dependencies. The YUI libs. can be replaced (rather easily) with other 
+  JavaScript toolkits by swaping the contents of deployR-transaction.js file which 
+  just wraps the YUI Connection Manager for the AJAX, with the implementation details 
+  of your favorite AJAX toolkit.
+  
+USAGE
+
+  [See /examples directory for more details]
+
+  * Includes:
+
+  [minified vesion]:
+
+  <script src="./yahoo-event-connection-json-min.js" type="text/javascript"></script>
+  <script src="./sha1.js" type="text/javascript"></script>
+  <script src="./revo-deployR-min.js" type="text/javascript"></script>
+
+     OR 
+
+  [Full source]
+
+  <script src="./yahoo-event-connection-json-min.js" type="text/javascript"></script>
+  <script src="./sha1.js" type="text/javascript"></script>
+  <script src="./deployR.js" type="text/javascript"></script>
+  <script src="./deployR-transaction.js" type="text/javascript"></script>
+
+  * Typical useage:
+
+   // define your callbacks to recieve the response JSON
+   var success = function(response) { // handle response success };
+   var fail = function(response) { // handle response error };
+   
+   // response JSON will be returned to your callback
+   // sope    = execution scope of your callbacks
+   // verbose = wether to return the full response given by the server <<see docs.>
+   var callback = { success : success, failure: fail, scope : this, verbose : true };
+   
+   // send request to create session, response given to your callback
+   R.util.DeployR.createSession(callback);
+
+
+  * Source:
+
+    /build/deployr/deployR.js
+    /build/deployr/deployR-transaction.js
+
+AUTHOR
+
+  The code was written and is maintained by:
+      Joroen Ooms and Sean Wells of Revolution Analytics.
+
+COPYRIGHT
+
+  Copyright (c) 2010, Revolution Analytics. All rights reserved.
+
+LICENSE
+
+  All code specific to the Revolution Analytics deployR UI libraries is issued 
+  under the Apache License Version 2.0. See LICENSE file under the /LICENSE 
+  directory for more information.
+
+  All code specific to YUI is issued under a BSD license. 
+  <<http://developer.yahoo.com/yui/license.html>>

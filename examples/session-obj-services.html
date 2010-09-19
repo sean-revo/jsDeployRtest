@@ -1,0 +1,311 @@
+ <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <title>Revolution Analytics UI Library Examples: Session Object Services</title>
+    
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+    <link rel="stylesheet" type="text/css" href="../assets/base.css">
+    <link rel="stylesheet" type="text/css" href="../assets/examples.css">
+
+    <script type="text/javascript" src="../includes/yahoo-event-connection-json-min.js"></script>
+    <script type="text/javascript" src="../includes/sha1.js"></script>
+    <script type="text/javascript" src="../includes/revo-deployR-min.js"></script>
+
+<style> #repo-obj-list { width:150px } </style>
+
+<script type="text/javascript">
+//enable passthrough of errors from YUI Event:
+if ((typeof YAHOO !== "undefined") && (YAHOO.util) && (YAHOO.util.Event)) {
+YAHOO.util.Event.throwErrors = true;
+}
+</script>
+</head>
+
+<body>
+  <div id="rHeader">
+    <div id="headerContainer">
+        <span id="headeraL">
+         <h1>Revolution Analytics</h1>
+        </span>
+    </div>
+  </div>
+
+  <div id="doc-container" class="rev-content">
+    <div id="inner-container">
+      <div id="doc-main">
+        <div class="rev-inner-content">
+          <div class="login-logout">
+            <ul>
+               <li>User ID</li>
+               <li>             
+                 <input id="uid"/>
+                 <i>Enable autosave on login</i>: <input type="checkbox" id="auto-save-check"/>
+                 <span id="user-login-status"></span>
+               </li>
+               <li>Password</li>
+               <li>
+                 <input type="password" id="pw"/>
+                 <span id="user-logout-status"></span>
+               </li>
+               <li>
+                 <input type="button" id="user-login-button" value="login"/>
+                 <input type="button" id="user-logout-button" value="logout"/>
+               </li>
+             </ul>
+          </div>
+          <h2>Session Object Services</h2>
+          <ul>
+            <li>List - /r/session/object/list
+              <div>
+                <input type="button" id="session-obj-list-button" value="List"/>
+                <i>Filter</i>: 
+                <select style="width:60px;"id="session-obj-filter-list">
+                  <option value=0>True</option\>
+                  <option value="1">False</option>
+                </select>
+              </div>
+            </li>
+            <li>Get - /r/session/object/get
+              <div>
+                <input id="get-name"/>
+                <input type="button" id="session-obj-get-button" value="Get"/>
+              </div>
+            </li>
+            <li> Push - /r/session/object/push
+              <div>
+                <textarea id="session-obj-push-input"></textarea>
+                <input type="button" id="session-obj-push-button" value="Push"/>       
+              </div>
+            </li>
+            <li> Upload - /r/session/object/upload
+              <div>
+                <form action="upload.php" enctype="multipart/form-data" method="post" id="session-obj-upload-form">
+                  <input type="file" name="file" id="session-obj-upload-file"/>
+                  <input type="button" id="session-obj-upload-button" value="Upload"/>       
+                </form>
+              </div>
+            </li>
+            <li>Delete - /r/session/object/delete
+              <div><input type="button" id="session-obj-delete-button" value="Delete"/></div>
+            </li>
+            <li>Save - /r/session/object/save
+              <div>
+                <select id="obj-list"></select>        
+                <input type="button" id="obj-list-button" value="List"/>
+                <i>Describe obj for saving</i>: <input id="session-obj-save-descr"/>
+                <input type="button" id="session-obj-save-button" value="Save"/>
+              </div>
+            </li>
+            <li>Load - /r/session/object/load
+              <div>
+                <select id="repo-obj-list"></select>        
+                <input type="button" id="repo-obj-list-button" title="List Repository Objects" value="List"/>
+                <input type="button" id="session-obj-load-button" value="Load"/>
+              </div>
+            </li>
+          </ul>
+        </div>
+      <div>
+    </div>
+  </div>
+
+  <div id="subFooter">
+    <div id="footerLegal">
+      <p>Copyright &copy; 2010 Revolution Analytics. All rights reserved.</p>
+      <p>
+        <a href="http://www.revolutionanalytics.com/aboutus/legal.php">Privacy Policy</a>
+        <a href="http://www.revolutionanalytics.com/aboutus/legal.php">Copyright Policy</a>
+        <a href="http://info.revolutionanalytics.com/contact-us.html">Contact Us</a>
+      </p>
+    </div>
+  </div>
+
+<script type="text/javascript">
+(function() {
+
+var SESSION = null;
+var SESSION_OBJ_FILENAME = '';
+var SESSION_OBJ = '';
+var LOAD_OBJ = '';
+
+var demo = {  
+
+    init : function() {
+
+       var logIn = function (response) {          
+        var loggedIn = function (response) { 
+          var session = response.deployr.response.session;
+          demo.test(session); alert("Success - login"); 
+        };          
+        var failLogin = function(e) { alert("Fail - User Login: " + e.status + "  " + e.statusText); };
+        var callback = { success : loggedIn, failure: failLogin, scope: this, verbose : true };
+        
+        var auto = ((document.getElementById('auto-save-check')).checked == 1 ? true : false);
+        var uid = document.getElementById('uid').value;
+        var pw = document.getElementById('pw').value;
+        R.util.DeployR.loginCreateSession(uid, pw, auto, callback);
+      }; // login
+      YAHOO.util.Event.on('user-login-button', 'click', logIn);   
+
+       var logout = function (response) {          
+        var done = function (response) { SESSION = null; alert("Success - logout"); }; 
+        var fail = function(e) { alert("Fail - User Logout: " + e.status + "  " + e.statusText); };
+        var callback = { success : done, failure: fail, scope: this, verbose : true };
+
+        R.util.DeployR.logout(callback);
+      }; // login
+      YAHOO.util.Event.on('user-logout-button', 'click', logout);   
+    },
+
+    test : function (session) {
+       if (SESSION) { return; }
+       SESSION = session;
+
+       // List Object Session
+       var listSession = function(e) {
+         var done = function (result) {
+           alert("List Object Session - Success");
+         };
+         var fail = function(e) { alert("Fail - List Object Session: " + e.status + "  " + e.statusText); }
+         var callback = { success : done, failure: fail, scope : this, verbose : true };
+         var el = document.getElementById('session-obj-filter-list');
+         var filter = el.options[el.selectedIndex].value;
+         filter = (filter == 0 ? true : false);
+         R.util.DeployR.listLiveSessionObjects(SESSION, filter, callback);
+       };
+       YAHOO.util.Event.on('session-obj-list-button', 'click', listSession);
+
+       // Get Object Session
+       var getSession = function(e) {
+         var done = function (result) { alert("Get Object Session - Success"); };
+         var fail = function(e) { alert("Fail - Get Object Session: " + e.status + "  " + e.statusText); }
+         var callback = { success : done, failure: fail, scope : this, verbose : true };
+         var name= document.getElementById('get-name').value; //'xyz';
+         var start = null;
+         var length = null;
+         R.util.DeployR.getLiveSessionObject(SESSION, name, start, length, callback);
+       };
+       YAHOO.util.Event.on('session-obj-get-button', 'click', getSession);
+
+       // Session Push
+       var sessionObjectPush = function(e) {
+         var done = function (result) { alert("Push Object Session - Success"); };
+         var fail = function (e) { alert("Fail - Session Push: " + e.status + "  " + e.statusText); }
+         var callback = { success : done, failure: fail, scope : this, verbose : true };
+
+         var rObj = document.getElementById('session-obj-push-input').value;
+         R.util.DeployR.pushSessionObject(SESSION, rObj, callback);
+       };
+       YAHOO.util.Event.on('session-obj-push-button', 'click', sessionObjectPush);
+
+       // Session Upload
+       var sessionObjectUpload = function(e) {
+         var done = function (result) { alert("Upload Objcet Session - Success"); };
+         var fail = function (e) { alert("Fail - Session Upload: " + e.status + "  " + e.statusText); }
+         var callback = { success : done, failure: fail, scope : this, verbose : true };
+
+         SESSION_OBJ_FILENAME = demo.getFileName('session-obj-upload-file');
+         var fileName = SESSION_OBJ_FILENAME;
+         R.util.DeployR.uploadSessionObject('session-obj-upload-form', fileName, SESSION, callback);
+       };
+       YAHOO.util.Event.on('session-obj-upload-button', 'click', sessionObjectUpload);
+
+       // Delete Object Session
+       var deleteSession = function(e) {
+         var done = function (result) { alert("Delete Object Session - Success"); }
+         var fail = function(e) { alert("Fail - Delete Object Session: " + e.status + "  " + e.statusText); }
+         var callback = { success : done, failure: fail, scope : this, verbose : true };
+         var name = 'robjects';
+         R.util.DeployR.deleteSessionObject(SESSION, name, callback);
+       };
+       YAHOO.util.Event.on('session-obj-delete-button', 'click', deleteSession);
+
+       // Save Object Session
+       var saveSession = function(e) {
+         var done = function (result) { alert("Save Object Session - Success"); }
+         var fail = function(e) { alert("Fail - Save Object Session: " +  e.status + "  " + e.statusText); }
+
+         var callback = { success : done, failure: fail, scope : this, verbose : true };
+         var name = SESSION_OBJ;
+         var descr = document.getElementById('session-obj-save-descr').value;
+         R.util.DeployR.saveSessionObject(SESSION, name, descr, callback);
+       };
+       YAHOO.util.Event.on('session-obj-save-button', 'click', saveSession);
+
+       // Live Obj List
+       var liveObjectList = function(e) {
+         var done = function (result) {
+           var el = document.getElementById('obj-list');
+           for (var index = 0; index < el.options.length; index++) {
+             el.options[index] = null;
+           }
+           var index = 0;
+
+           for (var o in result.deployr.response.robjects) {
+             if (!o) { continue; }
+             var label = o;
+             el.options[index] = new Option(label, index);
+             SESSION_OBJ = o;
+             index++;
+           }
+         };
+
+         var fail = function (e) { alert("Fail - Repo Object List: " + e.status + "  " + e.statusText); }
+         var callback = { success : done, failure: fail, scope : this, verbose : true };
+         R.util.DeployR.listLiveSessionObjects(SESSION, false, callback);
+       };
+       YAHOO.util.Event.on('obj-list-button', 'click', liveObjectList);
+
+       // Load Object Session
+       var loadSession = function(e) {
+         var done = function (result) { alert("Load Object Session - Success"); }         
+         var fail = function(e) { alert("Fail - Load Object Session: " + e.status + "  " + e.statusText); }
+         var callback = { success : done, failure: fail, scope : this, verbose : true };
+         var id = LOAD_OBJ;
+         R.util.DeployR.loadSessionObject(SESSION, id, callback);
+       };
+       YAHOO.util.Event.on('session-obj-load-button', 'click', loadSession);
+
+       // Repository Obj List
+       var repoObjectList = function(e) {
+         var done = function (result) {
+           var el = document.getElementById('repo-obj-list');
+           for (var index = 0; index < el.options.length; index++) {
+             el.options[index] = null;
+           }
+           var index = 0;
+
+           for (var o in result.deployr.response.objects) {
+             var obj = result.deployr.response.objects[o];
+             var label = obj.descr + " -- " + obj.value;
+             el.options[index] = new Option(label, index);
+             LOAD_OBJ = obj.value;
+             index++;
+           }
+         };
+
+         var fail = function (e) { alert("Fail - Repo Object List: " + e.status + "  " + e.statusText); }
+         var callback = { success : done, failure: fail, scope : this, verbose : true };
+
+         R.util.DeployR.listRepoObjects(callback);
+       };
+       YAHOO.util.Event.on('repo-obj-list-button', 'click', repoObjectList);
+    }, // end test
+
+    getFileName: function (id) {
+      var p = document.getElementById(id).value;
+      var t = p.replace(/\\/g,'<backslash>');
+       t = t.split('<backslash>');
+       return (t[t.length-1]); // last token is fileName
+    }
+
+};
+
+demo.init();
+
+})();
+</script>
+
+</body>
+</html>

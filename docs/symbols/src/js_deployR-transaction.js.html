@@ -1,0 +1,306 @@
+<html><head><meta http-equiv="content-type" content="text/html; charset=utf-8"> <style>
+	.KEYW {color: #933;}
+	.COMM {color: #bbb; font-style: italic;}
+	.NUMB {color: #393;}
+	.STRN {color: #393;}
+	.REGX {color: #339;}
+	.line {border-right: 1px dotted #666; color: #666; font-style: normal;}
+	</style></head><body><pre><span class='line'>  1</span> <span class="WHIT">
+<span class='line'>  2</span> </span><span class="NAME">namespace</span><span class="PUNC">(</span><span class="STRN">"R"</span><span class="PUNC">)</span><span class="PUNC">;</span><span class="WHIT"> </span><span class="WHIT">
+<span class='line'>  3</span> </span><span class="NAME">namespace</span><span class="PUNC">(</span><span class="STRN">"R.util"</span><span class="PUNC">)</span><span class="PUNC">;</span><span class="WHIT"> </span><span class="WHIT">
+<span class='line'>  4</span> </span><span class="NAME">namespace</span><span class="PUNC">(</span><span class="STRN">"R.repository"</span><span class="PUNC">)</span><span class="PUNC">;</span><span class="WHIT">    </span><span class="WHIT">
+<span class='line'>  5</span> </span><span class="NAME">namespace</span><span class="PUNC">(</span><span class="STRN">"R.session"</span><span class="PUNC">)</span><span class="PUNC">;</span><span class="WHIT"> </span><span class="WHIT">
+<span class='line'>  6</span> 
+<span class='line'>  7</span> </span><span class="COMM">/**
+<span class='line'>  8</span>  * @fileOverview This file defines methods for managing asynchronous transactions 
+<span class='line'>  9</span>  * and callback logic within the RevoDeployR JavaScript client libraries. 
+<span class='line'> 10</span>  * @author Revolution Analytics
+<span class='line'> 11</span>  * @version 2.0 beta release
+<span class='line'> 12</span>  */</span><span class="WHIT">
+<span class='line'> 13</span> 
+<span class='line'> 14</span> </span><span class="PUNC">(</span><span class="KEYW">function</span><span class="PUNC">(</span><span class="PUNC">)</span><span class="PUNC">{</span><span class="WHIT">
+<span class='line'> 15</span> </span><span class="WHIT">   </span><span class="KEYW">var</span><span class="WHIT"> </span><span class="NAME">JSON</span><span class="WHIT">    </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">YAHOO.lang.JSON</span><span class="PUNC">,</span><span class="WHIT">
+<span class='line'> 16</span> </span><span class="WHIT">       </span><span class="NAME">Connect</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">YAHOO.util.Connect</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'> 17</span> 
+<span class='line'> 18</span> </span><span class="COMM">/**
+<span class='line'> 19</span>  * Mechanism to encapsulate the transaction request and callback logic for the
+<span class='line'> 20</span>  * diffrent RevoDeployR Web Srvices API invocations. This class acts as a simple 
+<span class='line'> 21</span>  * wrapper around the YUI &lt;code>Connection Manager&lt;/code> exposing a subset of 
+<span class='line'> 22</span>  * methods for creating and managing asynchronous transactions.
+<span class='line'> 23</span>  *
+<span class='line'> 24</span>  * @namespace R.util
+<span class='line'> 25</span>  * @class DeployRTransaction
+<span class='line'> 26</span>  * @static
+<span class='line'> 27</span>  * @requires YAHOO.util.Connect
+<span class='line'> 28</span>  * @version 2.0 beta release
+<span class='line'> 29</span>  */</span><span class="WHIT">
+<span class='line'> 30</span> </span><span class="NAME">R.util.DeployRTransaction</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="WHIT">
+<span class='line'> 31</span> 
+<span class='line'> 32</span> </span><span class="WHIT">   </span><span class="COMM">/**
+<span class='line'> 33</span>     * Defines the base URL to the DeployR API resources.
+<span class='line'> 34</span>     * @public
+<span class='line'> 35</span>     * @memberOf R.util.DeployRTransaction
+<span class='line'> 36</span>     * @type String
+<span class='line'> 37</span>     */</span><span class="WHIT">
+<span class='line'> 38</span> </span><span class="WHIT">   </span><span class="NAME">DEPLOY_R_URL_PATH</span><span class="WHIT"> </span><span class="PUNC">:</span><span class="WHIT"> </span><span class="STRN">'/deployr'</span><span class="PUNC">,</span><span class="WHIT">
+<span class='line'> 39</span> 
+<span class='line'> 40</span> </span><span class="WHIT">  </span><span class="COMM">/**
+<span class='line'> 41</span>    * &lt;p>
+<span class='line'> 42</span>    *   Provides the base success case logic deligating out callback behavior to
+<span class='line'> 43</span>    *   be processed further. The given response object literial &lt;code> o &lt;/code> 
+<span class='line'> 44</span>    *   takes the following keys:
+<span class='line'> 45</span>    * &lt;/p>
+<span class='line'> 46</span>    * &lt;p> &lt;a name="response">&lt;/a>   
+<span class='line'> 47</span>    *   &lt;ul>
+<span class='line'> 48</span>    *     &lt;li>&lt;code>tId&lt;/code> - The unique, incremented id for the transaction.&lt;/li>
+<span class='line'> 49</span>    *     &lt;li>&lt;code>status&lt;/code> - The HTTP status code of the resulting transaction.&lt;/li>
+<span class='line'> 50</span>    *     &lt;li>&lt;code>statusText&lt;/code> - The message associated with the HTTP status. &lt;/li>
+<span class='line'> 51</span>    *     &lt;li>&lt;code>getResponseHeader&lt;/code> - Returns the string value of the specified header label.&lt;/li>
+<span class='line'> 52</span>    *     &lt;li>&lt;code>getAllResponseHeaders&lt;/code> - All returned HTTP headers available as a string.&lt;/li>
+<span class='line'> 53</span>    *     &lt;li>&lt;code>responseText&lt;/code> - The server's response as a string.&lt;/li>
+<span class='line'> 54</span>    *     &lt;li>&lt;code>responseXML&lt;/code> - The server's response as a XML document.&lt;/li>
+<span class='line'> 55</span>    *     &lt;li>&lt;code>argument&lt;/code> - The user-defined arguments from the callback.&lt;/li>
+<span class='line'> 56</span>    *   &lt;/ul>
+<span class='line'> 57</span>    * &lt;/p>
+<span class='line'> 58</span>    * &lt;p> 
+<span class='line'> 59</span>    *   The response object forwarded to the caller upon success will be parsed,
+<span class='line'> 60</span>    *   evaluated, and remain formated identical to the deployR JSON the server 
+<span class='line'> 61</span>    *   retuned.
+<span class='line'> 62</span>    * &lt;/p>
+<span class='line'> 63</span>    * @public
+<span class='line'> 64</span>    * @methodOf R.util.DeployRTransaction
+<span class='line'> 65</span>    * @param {Object} o the object literial response object.
+<span class='line'> 66</span>    */</span><span class="WHIT">
+<span class='line'> 67</span> </span><span class="WHIT">   </span><span class="NAME">handleSuccess</span><span class="PUNC">:</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="NAME">o</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="WHIT">
+<span class='line'> 68</span> </span><span class="WHIT">	 </span><span class="NAME">this.logRequestOutput</span><span class="PUNC">(</span><span class="NAME">o</span><span class="PUNC">)</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'> 69</span> 
+<span class='line'> 70</span> </span><span class="WHIT">      </span><span class="KEYW">if</span><span class="WHIT"> </span><span class="PUNC">(</span><span class="NAME">o.status</span><span class="WHIT"> </span><span class="PUNC">==</span><span class="WHIT"> </span><span class="NUMB">200</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="WHIT">
+<span class='line'> 71</span> </span><span class="WHIT">         </span><span class="NAME">this.processResult</span><span class="PUNC">(</span><span class="NAME">o</span><span class="PUNC">)</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'> 72</span> </span><span class="WHIT">      </span><span class="PUNC">}</span><span class="WHIT"> </span><span class="KEYW">else</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="WHIT">
+<span class='line'> 73</span> </span><span class="WHIT">         </span><span class="NAME">this.handlerFailure</span><span class="PUNC">(</span><span class="NAME">o</span><span class="PUNC">)</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'> 74</span> </span><span class="WHIT">      </span><span class="PUNC">}</span><span class="WHIT">
+<span class='line'> 75</span> </span><span class="WHIT">   </span><span class="PUNC">}</span><span class="PUNC">,</span><span class="WHIT">
+<span class='line'> 76</span> 
+<span class='line'> 77</span> </span><span class="WHIT">  </span><span class="COMM">/**
+<span class='line'> 78</span>    * &lt;p>
+<span class='line'> 79</span>    * Provides failure case logic by failing to return at all ot forwarding the 
+<span class='line'> 80</span>    * &lt;code>status&lt;/code> code and the &lt;code>statusText&lt;/code> description to the 
+<span class='line'> 81</span>    * failure callback within the defined execution scope should it have been 
+<span class='line'> 82</span>    * provided. The given response object literial takes the following keys:
+<span class='line'> 83</span>    * &lt;/p>
+<span class='line'> 84</span>    * &lt;p>
+<span class='line'> 85</span>    *   &lt;ul>
+<span class='line'> 86</span>    *     &lt;li>&lt;code>tId&lt;/code> - The unique, incremented id for the transaction.&lt;/li>
+<span class='line'> 87</span>    *     &lt;li>&lt;code>status&lt;/code> - The HTTP status code of the resulting transaction.&lt;/li>
+<span class='line'> 88</span>    *     &lt;li>&lt;code>statusText&lt;/code> - The message associated with the HTTP status. &lt;/li>
+<span class='line'> 89</span>    *     &lt;li>&lt;code>argument&lt;/code> - The user-defined arguments from the callback.&lt;/li>
+<span class='line'> 90</span>    *   &lt;/ul>
+<span class='line'> 91</span>    * &lt;/p>
+<span class='line'> 92</span>    * @public
+<span class='line'> 93</span>    * @methodOf R.util.DeployRTransaction
+<span class='line'> 94</span>    * @param {Object} o the object literial response object.
+<span class='line'> 95</span>    */</span><span class="WHIT">
+<span class='line'> 96</span> </span><span class="WHIT">   </span><span class="NAME">handleFailure</span><span class="PUNC">:</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="NAME">o</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="WHIT">
+<span class='line'> 97</span> </span><span class="WHIT">		</span><span class="NAME">this.logRequestOutput</span><span class="PUNC">(</span><span class="NAME">o</span><span class="PUNC">)</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'> 98</span> </span><span class="WHIT">	</span><span class="WHIT">
+<span class='line'> 99</span> </span><span class="WHIT">      </span><span class="KEYW">var</span><span class="WHIT"> </span><span class="NAME">callback</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">o.argument</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>100</span> </span><span class="WHIT">      </span><span class="COMM">//(" -- Transaction Failure --");</span><span class="WHIT">
+<span class='line'>101</span> </span><span class="WHIT">      </span><span class="KEYW">if</span><span class="PUNC">(</span><span class="NAME">callback</span><span class="WHIT"> </span><span class="PUNC">&&</span><span class="WHIT"> </span><span class="NAME">callback.failure</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="WHIT">
+<span class='line'>102</span> </span><span class="WHIT">         </span><span class="KEYW">var</span><span class="WHIT"> </span><span class="NAME">scope</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">callback.scope</span><span class="WHIT"> </span><span class="PUNC">||</span><span class="WHIT"> </span><span class="KEYW">this</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>103</span> </span><span class="WHIT">         </span><span class="NAME">callback.failure.call</span><span class="PUNC">(</span><span class="NAME">scope</span><span class="PUNC">,</span><span class="WHIT"> </span><span class="NAME">o</span><span class="PUNC">)</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>104</span> </span><span class="WHIT">      </span><span class="PUNC">}</span><span class="WHIT">
+<span class='line'>105</span> </span><span class="WHIT">   </span><span class="PUNC">}</span><span class="PUNC">,</span><span class="WHIT">
+<span class='line'>106</span> 
+<span class='line'>107</span> </span><span class="WHIT">  </span><span class="COMM">/**
+<span class='line'>108</span>    * &lt;p>
+<span class='line'>109</span>    * Provides success case logic by forwarding the response object to the success 
+<span class='line'>110</span>    * callback within the defined execution scope should it have been provided. The 
+<span class='line'>111</span>    * given response object literial takes the following &lt;a href="#response">keys&lt;/a>.
+<span class='line'>112</span>    * &lt;/p>
+<span class='line'>113</span>    * @public
+<span class='line'>114</span>    * @methodOf R.util.DeployRTransaction
+<span class='line'>115</span>    * @param {Object} o the object literial response object.
+<span class='line'>116</span>    */</span><span class="WHIT">
+<span class='line'>117</span> </span><span class="WHIT">   </span><span class="NAME">processResult</span><span class="PUNC">:</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="NAME">o</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="WHIT">
+<span class='line'>118</span> </span><span class="WHIT">      </span><span class="KEYW">var</span><span class="WHIT"> </span><span class="NAME">callback</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">o.argument</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>119</span> 
+<span class='line'>120</span> </span><span class="WHIT">      </span><span class="KEYW">if</span><span class="PUNC">(</span><span class="NAME">callback</span><span class="WHIT"> </span><span class="PUNC">&&</span><span class="WHIT"> </span><span class="NAME">callback.success</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="WHIT">
+<span class='line'>121</span> </span><span class="WHIT">         </span><span class="KEYW">var</span><span class="WHIT"> </span><span class="NAME">scope</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">callback.scope</span><span class="WHIT"> </span><span class="PUNC">||</span><span class="WHIT"> </span><span class="KEYW">this</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>122</span> </span><span class="WHIT">         </span><span class="KEYW">var</span><span class="WHIT"> </span><span class="NAME">format</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">callback.format</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>123</span> </span><span class="WHIT">         </span><span class="KEYW">var</span><span class="WHIT"> </span><span class="NAME">response</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="PUNC">(</span><span class="NAME">format</span><span class="WHIT"> </span><span class="PUNC">==</span><span class="WHIT"> </span><span class="STRN">"json"</span><span class="WHIT"> </span><span class="PUNC">?</span><span class="WHIT"> </span><span class="NAME">JSON.parse</span><span class="PUNC">(</span><span class="NAME">o.responseText</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">:</span><span class="WHIT"> </span><span class="NAME">o.responseText</span><span class="PUNC">)</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>124</span> </span><span class="WHIT">	     </span><span class="KEYW">if</span><span class="WHIT"> </span><span class="PUNC">(</span><span class="NAME">this._isSuccess</span><span class="PUNC">(</span><span class="NAME">response</span><span class="PUNC">,</span><span class="WHIT"> </span><span class="NAME">format</span><span class="PUNC">)</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="WHIT">
+<span class='line'>125</span> </span><span class="WHIT">	       </span><span class="NAME">callback.success.call</span><span class="PUNC">(</span><span class="NAME">scope</span><span class="PUNC">,</span><span class="WHIT"> </span><span class="NAME">response</span><span class="PUNC">)</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>126</span> </span><span class="WHIT">		 </span><span class="PUNC">}</span><span class="WHIT"> </span><span class="KEYW">else</span><span class="WHIT"> </span><span class="KEYW">if</span><span class="WHIT"> </span><span class="PUNC">(</span><span class="NAME">callback.failure</span><span class="WHIT"> </span><span class="PUNC">&&</span><span class="WHIT"> </span><span class="NAME">format</span><span class="WHIT"> </span><span class="PUNC">==</span><span class="WHIT"> </span><span class="STRN">'json'</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="WHIT">
+<span class='line'>127</span> </span><span class="WHIT">           </span><span class="COMM">// Handle a valid status = 200 HTTP response, with a success=false </span><span class="WHIT">
+<span class='line'>128</span> </span><span class="WHIT">           </span><span class="COMM">// API response		   </span><span class="WHIT">
+<span class='line'>129</span> </span><span class="WHIT">           </span><span class="NAME">o.status</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="STRN">'UNKNOWN'</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>130</span> </span><span class="WHIT">           </span><span class="NAME">o.statusText</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">response.deployr.response.error</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>131</span> </span><span class="WHIT">           </span><span class="NAME">callback.failure.call</span><span class="PUNC">(</span><span class="NAME">scope</span><span class="PUNC">,</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="NAME">status</span><span class="PUNC">:</span><span class="WHIT"> </span><span class="STRN">'UNKNOWN'</span><span class="PUNC">,</span><span class="WHIT"> </span><span class="NAME">statusText</span><span class="WHIT"> </span><span class="PUNC">:</span><span class="WHIT"> </span><span class="NAME">fail</span><span class="PUNC">}</span><span class="PUNC">)</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>132</span> </span><span class="WHIT">		 </span><span class="PUNC">}</span><span class="WHIT">
+<span class='line'>133</span> </span><span class="WHIT">      </span><span class="PUNC">}</span><span class="WHIT">
+<span class='line'>134</span> </span><span class="WHIT">   </span><span class="PUNC">}</span><span class="PUNC">,</span><span class="WHIT">
+<span class='line'>135</span> </span><span class="WHIT">  </span><span class="WHIT">
+<span class='line'>136</span> </span><span class="WHIT">  </span><span class="COMM">/**
+<span class='line'>137</span>    * &lt;p>
+<span class='line'>138</span>    * Manages the response logic for the completion of an asynchronous file upload.
+<span class='line'>139</span>    * Since file uploading occurs through an iframe, traditional response data such as 
+<span class='line'>140</span>    * HTTP status codes are not directly available, and connection manager cannot 
+<span class='line'>141</span>    * reasonably discern success or failure. Instead, the callback's upload handler 
+<span class='line'>142</span>    * will receive a response object containing the body of the iframe document, as a 
+<span class='line'>143</span>    * string, when the transaction is complete. The given response object literial 
+<span class='line'>144</span>    * takes the following keys:
+<span class='line'>145</span>    * &lt;/p>
+<span class='line'>146</span>    * &lt;p>
+<span class='line'>147</span>    * &lt;ul>
+<span class='line'>148</span>    *   &lt;li>&lt;code>tId&lt;/code> - The unique, incremented id for the transaction.&lt;/li>
+<span class='line'>149</span>    *   &lt;li>&lt;code>status&lt;/code> - The HTTP status code of the resulting transaction.&lt;/li>
+<span class='line'>150</span>    *   &lt;li>&lt;code>statusText&lt;/code> - The message associated with the HTTP status. &lt;/li>
+<span class='line'>151</span>    *   &lt;li>&lt;code>argument&lt;/code> - The user-defined arguments from the callback.&lt;/li>
+<span class='line'>152</span>    * &lt;/ul>
+<span class='line'>153</span>    * &lt;/p>
+<span class='line'>154</span>    * @public
+<span class='line'>155</span>    * @methodOf R.util.DeployRTransaction
+<span class='line'>156</span>    * @param {Object} o the object literial response object.
+<span class='line'>157</span>    */</span><span class="WHIT">
+<span class='line'>158</span> </span><span class="WHIT">   </span><span class="NAME">uploadHandler</span><span class="PUNC">:</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="WHIT"> </span><span class="PUNC">(</span><span class="NAME">o</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="WHIT">
+<span class='line'>159</span> </span><span class="WHIT">      </span><span class="KEYW">var</span><span class="WHIT"> </span><span class="NAME">callback</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">o.argument</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>160</span> 
+<span class='line'>161</span> </span><span class="WHIT">       </span><span class="KEYW">if</span><span class="WHIT"> </span><span class="PUNC">(</span><span class="NAME">o.responseText</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="WHIT">
+<span class='line'>162</span> </span><span class="WHIT">          </span><span class="KEYW">if</span><span class="WHIT"> </span><span class="PUNC">(</span><span class="NAME">callback.success</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="WHIT">
+<span class='line'>163</span> </span><span class="WHIT">	         </span><span class="KEYW">var</span><span class="WHIT"> </span><span class="NAME">scope</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">callback.scope</span><span class="WHIT"> </span><span class="PUNC">||</span><span class="WHIT"> </span><span class="KEYW">this</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>164</span> </span><span class="WHIT">             </span><span class="NAME">callback.success.call</span><span class="PUNC">(</span><span class="NAME">scope</span><span class="PUNC">,</span><span class="WHIT"> </span><span class="NAME">JSON.parse</span><span class="PUNC">(</span><span class="NAME">o.responseText</span><span class="PUNC">)</span><span class="PUNC">)</span><span class="PUNC">;</span><span class="WHIT">              </span><span class="WHIT">
+<span class='line'>165</span> </span><span class="WHIT">               </span><span class="COMM">//callback.success.call(scope, o.responseText);</span><span class="WHIT">
+<span class='line'>166</span> </span><span class="WHIT">          </span><span class="PUNC">}</span><span class="WHIT">
+<span class='line'>167</span> </span><span class="WHIT">        </span><span class="PUNC">}</span><span class="WHIT"> </span><span class="KEYW">else</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="WHIT">
+<span class='line'>168</span> </span><span class="WHIT">           </span><span class="NAME">this.handleFailure</span><span class="PUNC">(</span><span class="NAME">o</span><span class="PUNC">)</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>169</span> </span><span class="WHIT">      </span><span class="PUNC">}</span><span class="WHIT">
+<span class='line'>170</span> </span><span class="WHIT">   </span><span class="PUNC">}</span><span class="PUNC">,</span><span class="WHIT">
+<span class='line'>171</span> 
+<span class='line'>172</span> </span><span class="WHIT">   </span><span class="COMM">/**
+<span class='line'>173</span>     * &lt;p>
+<span class='line'>174</span>     * Method for initiating an asynchronous request via the XHR object. The request
+<span class='line'>175</span>     * object literial configuration takes the following keys:
+<span class='line'>176</span>     * &lt;/p>
+<span class='line'>177</span>     * &lt;p>
+<span class='line'>178</span>     * &lt;ul>
+<span class='line'>179</span>     *   &lt;li>&lt;code>method&lt;/code> - HTTP transaction method&lt;/li>
+<span class='line'>180</span>     *   &lt;li>&lt;code>url&lt;/code> - Fully qualified path of resource&lt;/li>
+<span class='line'>181</span>     *   &lt;li>
+<span class='line'>182</span>     *     &lt;code>params&lt;/code> - The request's GET|POST respective POST body|querystring
+<span class='line'>183</span>     *   &lt;/li>
+<span class='line'>184</span>     *   &lt;li>
+<span class='line'>185</span>     *    &lt;code>callback&lt;/code> - {Object} (Optional) User-defined callback object 
+<span class='line'>186</span>     *    literal containing the following keys:
+<span class='line'>187</span>     *    &lt;ul>
+<span class='line'>188</span>     *      &lt;li>&lt;code>success&lt;/code> - {Function} success callback
+<span class='line'>189</span>     *      &lt;li>&lt;code>failure&lt;/code> - {Function} failure callback
+<span class='line'>190</span>     *      &lt;li>&lt;code>scope&lt;/code> - {Object} callback's execution scope
+<span class='line'>191</span>     *    &lt;/ul>
+<span class='line'>192</span>     *   &lt;/li>
+<span class='line'>193</span>     * &lt;/ul>
+<span class='line'>194</span>     * &lt;/p>
+<span class='line'>195</span>     * @public
+<span class='line'>196</span>     * @methodOf R.util.DeployRTransaction
+<span class='line'>197</span>     * @param {Object} config The object literial containing the request configuration.
+<span class='line'>198</span>     * @return {Object} Returns the connection object.
+<span class='line'>199</span>     */</span><span class="WHIT">
+<span class='line'>200</span> </span><span class="WHIT">   </span><span class="NAME">sendRequest</span><span class="PUNC">:</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="NAME">config</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="WHIT">
+<span class='line'>201</span> </span><span class="WHIT">      </span><span class="NAME">config.callback.format</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">config.params.format</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>202</span> 
+<span class='line'>203</span> </span><span class="WHIT">      </span><span class="KEYW">var</span><span class="WHIT"> </span><span class="NAME">callback</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="WHIT"> </span><span class="NAME">success</span><span class="PUNC">:</span><span class="WHIT"> </span><span class="NAME">R.util.DeployRTransaction.handleSuccess</span><span class="PUNC">,</span><span class="WHIT">
+<span class='line'>204</span> </span><span class="WHIT">                       </span><span class="NAME">failure</span><span class="PUNC">:</span><span class="WHIT"> </span><span class="NAME">R.util.DeployRTransaction.handleFailure</span><span class="PUNC">,</span><span class="WHIT">
+<span class='line'>205</span> </span><span class="WHIT">                       </span><span class="NAME">upload</span><span class="PUNC">:</span><span class="WHIT"> </span><span class="NAME">R.util.DeployRTransaction.uploadHandler</span><span class="PUNC">,</span><span class="WHIT">
+<span class='line'>206</span> </span><span class="WHIT">                       </span><span class="NAME">scope</span><span class="PUNC">:</span><span class="WHIT"> </span><span class="NAME">R.util.DeployRTransaction</span><span class="PUNC">,</span><span class="WHIT">
+<span class='line'>207</span> </span><span class="WHIT">                       </span><span class="NAME">argument</span><span class="WHIT"> </span><span class="PUNC">:</span><span class="WHIT"> </span><span class="NAME">config.callback</span><span class="PUNC">,</span><span class="WHIT"> </span><span class="COMM">// include caller's callback</span><span class="WHIT">
+<span class='line'>208</span> </span><span class="WHIT">                       </span><span class="NAME">timeout</span><span class="PUNC">:</span><span class="WHIT"> </span><span class="NUMB">20</span><span class="PUNC">*</span><span class="NUMB">60</span><span class="PUNC">*</span><span class="NUMB">1000</span><span class="PUNC">,</span><span class="WHIT"> </span><span class="COMM">//timeout is set to 20 minutes</span><span class="WHIT">
+<span class='line'>209</span> </span><span class="WHIT">                       </span><span class="NAME">cache</span><span class="WHIT"> </span><span class="PUNC">:</span><span class="WHIT"> </span><span class="KEYW">false</span><span class="WHIT">
+<span class='line'>210</span> </span><span class="WHIT">	                 </span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>211</span> 
+<span class='line'>212</span> </span><span class="WHIT">      </span><span class="KEYW">var</span><span class="WHIT"> </span><span class="NAME">method</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">config.method</span><span class="WHIT"> </span><span class="PUNC">||</span><span class="WHIT"> </span><span class="STRN">'GET'</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>213</span> </span><span class="WHIT">      </span><span class="KEYW">var</span><span class="WHIT"> </span><span class="NAME">uri</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">this.DEPLOY_R_URL_PATH</span><span class="WHIT"> </span><span class="PUNC">+</span><span class="WHIT"> </span><span class="NAME">config.url</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>214</span> </span><span class="WHIT">      </span><span class="KEYW">var</span><span class="WHIT"> </span><span class="NAME">params</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">this.jsonToNameValue</span><span class="PUNC">(</span><span class="NAME">config.params</span><span class="PUNC">,</span><span class="WHIT"> </span><span class="NAME">method</span><span class="PUNC">)</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>215</span> 
+<span class='line'>216</span> </span><span class="WHIT">      </span><span class="COMM">// GET - put params on URL</span><span class="WHIT">
+<span class='line'>217</span> </span><span class="WHIT">      </span><span class="KEYW">if</span><span class="WHIT"> </span><span class="PUNC">(</span><span class="NAME">method</span><span class="WHIT"> </span><span class="PUNC">==</span><span class="WHIT"> </span><span class="STRN">'GET'</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="WHIT">         </span><span class="WHIT">
+<span class='line'>218</span> </span><span class="WHIT">        </span><span class="NAME">uri</span><span class="WHIT"> </span><span class="PUNC">+</span><span class="PUNC">=</span><span class="WHIT"> </span><span class="STRN">'?'</span><span class="WHIT"> </span><span class="PUNC">+</span><span class="WHIT"> </span><span class="NAME">params</span><span class="PUNC">;</span><span class="WHIT">        </span><span class="WHIT">
+<span class='line'>219</span> </span><span class="WHIT">        </span><span class="NAME">params</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">null</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>220</span> </span><span class="WHIT">      </span><span class="PUNC">}</span><span class="WHIT">
+<span class='line'>221</span> 
+<span class='line'>222</span> </span><span class="WHIT">	  </span><span class="NAME">this.logRequestInput</span><span class="PUNC">(</span><span class="NAME">method</span><span class="PUNC">,</span><span class="WHIT"> </span><span class="NAME">config.url</span><span class="PUNC">,</span><span class="WHIT"> </span><span class="NAME">config.params</span><span class="PUNC">)</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>223</span> </span><span class="WHIT">      </span><span class="WHIT">
+<span class='line'>224</span> </span><span class="WHIT">      </span><span class="COMM">// async - file upload</span><span class="WHIT">
+<span class='line'>225</span> </span><span class="WHIT">      </span><span class="KEYW">if</span><span class="WHIT"> </span><span class="PUNC">(</span><span class="NAME">config.isUpload</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="WHIT">
+<span class='line'>226</span> </span><span class="WHIT">         </span><span class="NAME">method</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="STRN">'POST'</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>227</span> </span><span class="WHIT">         </span><span class="NAME">Connect.setForm</span><span class="PUNC">(</span><span class="NAME">config.formId</span><span class="PUNC">,</span><span class="WHIT"> </span><span class="KEYW">true</span><span class="PUNC">)</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>228</span> </span><span class="WHIT">      </span><span class="PUNC">}</span><span class="WHIT">
+<span class='line'>229</span> 
+<span class='line'>230</span> </span><span class="WHIT">      </span><span class="KEYW">var</span><span class="WHIT"> </span><span class="NAME">tId</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">Connect.asyncRequest</span><span class="PUNC">(</span><span class="NAME">method</span><span class="PUNC">,</span><span class="WHIT"> </span><span class="NAME">uri</span><span class="PUNC">,</span><span class="WHIT"> </span><span class="NAME">callback</span><span class="PUNC">,</span><span class="WHIT"> </span><span class="NAME">params</span><span class="PUNC">)</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>231</span> </span><span class="WHIT">      </span><span class="KEYW">return</span><span class="WHIT"> </span><span class="NAME">tId</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>232</span> </span><span class="WHIT">   </span><span class="PUNC">}</span><span class="PUNC">,</span><span class="WHIT">
+<span class='line'>233</span> 
+<span class='line'>234</span> </span><span class="WHIT">   </span><span class="NAME">logRequestOutput</span><span class="PUNC">:</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="WHIT"> </span><span class="PUNC">(</span><span class="NAME">o</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="WHIT">
+<span class='line'>235</span> </span><span class="WHIT">		</span><span class="COMM">//var outEl = YAHOO.util.Dom.get('output-content');</span><span class="WHIT">
+<span class='line'>236</span> </span><span class="WHIT">		</span><span class="COMM">//outEl.innerHTML = YAHOO.lang.JSON.stringify(o.responseText, null, "     ");</span><span class="WHIT">
+<span class='line'>237</span> </span><span class="WHIT">    </span><span class="PUNC">}</span><span class="PUNC">,</span><span class="WHIT">
+<span class='line'>238</span> 
+<span class='line'>239</span> </span><span class="WHIT">   </span><span class="NAME">logRequestInput</span><span class="PUNC">:</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="WHIT"> </span><span class="PUNC">(</span><span class="NAME">method</span><span class="PUNC">,</span><span class="WHIT"> </span><span class="NAME">url</span><span class="PUNC">,</span><span class="WHIT"> </span><span class="NAME">params</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="WHIT">
+<span class='line'>240</span> </span><span class="WHIT">       </span><span class="COMM">/*
+<span class='line'>241</span>         var inEl = YAHOO.util.Dom.get('input-content');
+<span class='line'>242</span>         var input = [];
+<span class='line'>243</span> 
+<span class='line'>244</span>         for (var p in params) {
+<span class='line'>245</span>             input[input.length] = '&lt;div>' + p + ' = ' + params[p] + '&lt;/div>';
+<span class='line'>246</span>         }
+<span class='line'>247</span>         input[input.length] = '&lt;div>HTTP ' + method + ' on API call:&lt;/div>';
+<span class='line'>248</span>         input[input.length] = '&lt;div>' + url + '&lt;/div>';
+<span class='line'>249</span>         inEl.innerHTML = input.join('');
+<span class='line'>250</span>        */</span><span class="WHIT">
+<span class='line'>251</span> </span><span class="WHIT">    </span><span class="PUNC">}</span><span class="PUNC">,</span><span class="WHIT">
+<span class='line'>252</span> 
+<span class='line'>253</span> </span><span class="WHIT">   </span><span class="COMM">/**
+<span class='line'>254</span>     * Helper utility to extract the success value out of the JSON response should
+<span class='line'>255</span>     * the response be encoded in JSON.
+<span class='line'>256</span>     * @private
+<span class='line'>257</span>     * @param {object} response the deployR response object literial.
+<span class='line'>258</span>     * @param {string} format the format of the response object.
+<span class='line'>259</span>     * @return 
+<span class='line'>260</span>     */</span><span class="WHIT">
+<span class='line'>261</span> </span><span class="WHIT">   </span><span class="NAME">_isSuccess</span><span class="PUNC">:</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="NAME">response</span><span class="PUNC">,</span><span class="WHIT"> </span><span class="NAME">format</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="WHIT">
+<span class='line'>262</span> </span><span class="WHIT">     </span><span class="KEYW">var</span><span class="WHIT"> </span><span class="NAME">status</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">true</span><span class="PUNC">;</span><span class="WHIT"> </span><span class="WHIT">
+<span class='line'>263</span> </span><span class="WHIT">	 </span><span class="KEYW">if</span><span class="WHIT"> </span><span class="PUNC">(</span><span class="NAME">format</span><span class="WHIT"> </span><span class="PUNC">==</span><span class="WHIT"> </span><span class="STRN">'json'</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="WHIT">
+<span class='line'>264</span> </span><span class="WHIT">         </span><span class="NAME">status</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">response.deployr.response.success</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>265</span> </span><span class="WHIT">     </span><span class="PUNC">}</span><span class="WHIT">
+<span class='line'>266</span> </span><span class="WHIT">     </span><span class="KEYW">return</span><span class="WHIT"> </span><span class="NAME">status</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>267</span> </span><span class="WHIT">   </span><span class="PUNC">}</span><span class="PUNC">,</span><span class="WHIT">
+<span class='line'>268</span> 
+<span class='line'>269</span> </span><span class="WHIT">   </span><span class="COMM">/**
+<span class='line'>270</span>     * Helper utility to flaten JSON inot Name/Value pairs used within the request.
+<span class='line'>271</span>     * @ignore    
+<span class='line'>272</span>     */</span><span class="WHIT">
+<span class='line'>273</span> </span><span class="WHIT">   </span><span class="NAME">jsonToNameValue</span><span class="WHIT"> </span><span class="PUNC">:</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="WHIT"> </span><span class="PUNC">(</span><span class="NAME">obj</span><span class="PUNC">,</span><span class="WHIT"> </span><span class="NAME">method</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="WHIT">
+<span class='line'>274</span> </span><span class="WHIT">      </span><span class="KEYW">var</span><span class="WHIT"> </span><span class="NAME">results</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="PUNC">[</span><span class="PUNC">]</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>275</span> </span><span class="WHIT">      </span><span class="KEYW">var</span><span class="WHIT"> </span><span class="NAME">convert</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="WHIT"> </span><span class="PUNC">(</span><span class="NAME">obj</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="WHIT">
+<span class='line'>276</span> </span><span class="WHIT">         </span><span class="KEYW">for</span><span class="WHIT"> </span><span class="PUNC">(</span><span class="KEYW">var</span><span class="WHIT"> </span><span class="NAME">key</span><span class="WHIT"> </span><span class="KEYW">in</span><span class="WHIT"> </span><span class="NAME">obj</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="WHIT">
+<span class='line'>277</span> </span><span class="WHIT">            </span><span class="KEYW">if</span><span class="WHIT"> </span><span class="PUNC">(</span><span class="NAME">obj.hasOwnProperty</span><span class="PUNC">(</span><span class="NAME">key</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">&&</span><span class="WHIT"> </span><span class="NAME">obj</span><span class="PUNC">[</span><span class="NAME">key</span><span class="PUNC">]</span><span class="WHIT"> </span><span class="PUNC">!=</span><span class="WHIT"> </span><span class="KEYW">null</span><span class="WHIT"> </span><span class="PUNC">&&</span><span class="WHIT"> </span><span class="NAME">obj</span><span class="PUNC">[</span><span class="NAME">key</span><span class="PUNC">]</span><span class="WHIT"> </span><span class="PUNC">!=</span><span class="WHIT"> </span><span class="NAME">undefined</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="WHIT">
+<span class='line'>278</span> </span><span class="WHIT">               </span><span class="KEYW">var</span><span class="WHIT"> </span><span class="NAME">value</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">obj</span><span class="PUNC">[</span><span class="NAME">key</span><span class="PUNC">]</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>279</span> </span><span class="WHIT">               </span><span class="KEYW">if</span><span class="WHIT"> </span><span class="PUNC">(</span><span class="NAME">value</span><span class="WHIT"> </span><span class="PUNC">==</span><span class="WHIT"> </span><span class="KEYW">null</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="WHIT"> </span><span class="KEYW">continue</span><span class="PUNC">;</span><span class="WHIT"> </span><span class="PUNC">}</span><span class="WHIT">
+<span class='line'>280</span> </span><span class="WHIT">               </span><span class="KEYW">if</span><span class="WHIT"> </span><span class="PUNC">(</span><span class="NAME">value</span><span class="WHIT"> </span><span class="KEYW">instanceof</span><span class="WHIT"> </span><span class="NAME">Object</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="WHIT">
+<span class='line'>281</span> </span><span class="WHIT">                 </span><span class="NAME">convert</span><span class="PUNC">(</span><span class="NAME">value</span><span class="PUNC">)</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>282</span> </span><span class="WHIT">               </span><span class="PUNC">}</span><span class="WHIT">
+<span class='line'>283</span> </span><span class="WHIT">	       </span><span class="NAME">results.push</span><span class="PUNC">(</span><span class="NAME">key</span><span class="WHIT"> </span><span class="PUNC">+</span><span class="WHIT"> </span><span class="STRN">"="</span><span class="WHIT"> </span><span class="PUNC">+</span><span class="WHIT"> </span><span class="PUNC">(</span><span class="NAME">method</span><span class="WHIT"> </span><span class="PUNC">==</span><span class="WHIT"> </span><span class="STRN">'GET'</span><span class="WHIT"> </span><span class="PUNC">?</span><span class="WHIT"> </span><span class="NAME">encodeURIComponent</span><span class="PUNC">(</span><span class="NAME">value</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">:</span><span class="WHIT"> </span><span class="NAME">value</span><span class="PUNC">)</span><span class="PUNC">)</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>284</span> </span><span class="WHIT">            </span><span class="PUNC">}</span><span class="WHIT">
+<span class='line'>285</span> </span><span class="WHIT">         </span><span class="PUNC">}</span><span class="WHIT">
+<span class='line'>286</span> </span><span class="WHIT">      </span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>287</span> 
+<span class='line'>288</span> </span><span class="WHIT">      </span><span class="NAME">convert</span><span class="PUNC">(</span><span class="NAME">obj</span><span class="PUNC">)</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>289</span> </span><span class="WHIT">      </span><span class="KEYW">return</span><span class="WHIT"> </span><span class="PUNC">(</span><span class="NAME">results.join</span><span class="PUNC">(</span><span class="STRN">"&"</span><span class="PUNC">)</span><span class="PUNC">)</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>290</span> </span><span class="WHIT">    </span><span class="PUNC">}</span><span class="WHIT">
+<span class='line'>291</span> 
+<span class='line'>292</span> </span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT"> </span><span class="COMM">// end transaction</span><span class="WHIT">
+<span class='line'>293</span> 
+<span class='line'>294</span> </span><span class="PUNC">}</span><span class="PUNC">)</span><span class="PUNC">(</span><span class="PUNC">)</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>295</span> 
+<span class='line'>296</span> 
+<span class='line'>297</span> </span><span class="COMM">// namespace</span><span class="WHIT">
+<span class='line'>298</span> </span><span class="KEYW">function</span><span class="WHIT"> </span><span class="NAME">namespace</span><span class="PUNC">(</span><span class="PUNC">)</span><span class="PUNC">{</span><span class="KEYW">var</span><span class="WHIT"> </span><span class="NAME">a</span><span class="PUNC">=</span><span class="NAME">arguments</span><span class="PUNC">,</span><span class="WHIT"> </span><span class="NAME">o</span><span class="PUNC">=</span><span class="KEYW">null</span><span class="PUNC">,</span><span class="WHIT"> </span><span class="NAME">i</span><span class="PUNC">,</span><span class="WHIT"> </span><span class="NAME">j</span><span class="PUNC">,</span><span class="WHIT"> </span><span class="NAME">d</span><span class="PUNC">;</span><span class="KEYW">for</span><span class="WHIT"> </span><span class="PUNC">(</span><span class="NAME">i</span><span class="PUNC">=</span><span class="NUMB">0</span><span class="PUNC">;</span><span class="WHIT"> </span><span class="NAME">i</span><span class="PUNC">&lt;</span><span class="NAME">a.length</span><span class="PUNC">;</span><span class="WHIT"> </span><span class="NAME">i</span><span class="PUNC">=</span><span class="NAME">i</span><span class="PUNC">+</span><span class="NUMB">1</span><span class="PUNC">)</span><span class="PUNC">{</span><span class="NAME">d</span><span class="PUNC">=</span><span class="NAME">a</span><span class="PUNC">[</span><span class="NAME">i</span><span class="PUNC">]</span><span class="PUNC">.</span><span class="NAME">split</span><span class="PUNC">(</span><span class="STRN">"."</span><span class="PUNC">)</span><span class="PUNC">;</span><span class="NAME">o</span><span class="PUNC">=</span><span class="NAME">window</span><span class="PUNC">;</span><span class="KEYW">for</span><span class="WHIT"> </span><span class="PUNC">(</span><span class="NAME">j</span><span class="PUNC">=</span><span class="NUMB">0</span><span class="PUNC">;</span><span class="WHIT"> </span><span class="NAME">j</span><span class="PUNC">&lt;</span><span class="NAME">d.length</span><span class="PUNC">;</span><span class="WHIT"> </span><span class="NAME">j</span><span class="PUNC">=</span><span class="NAME">j</span><span class="PUNC">+</span><span class="NUMB">1</span><span class="PUNC">)</span><span class="PUNC">{</span><span class="NAME">o</span><span class="PUNC">[</span><span class="NAME">d</span><span class="PUNC">[</span><span class="NAME">j</span><span class="PUNC">]</span><span class="PUNC">]</span><span class="PUNC">=</span><span class="NAME">o</span><span class="PUNC">[</span><span class="NAME">d</span><span class="PUNC">[</span><span class="NAME">j</span><span class="PUNC">]</span><span class="PUNC">]</span><span class="WHIT"> </span><span class="PUNC">||</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="PUNC">}</span><span class="PUNC">;</span><span class="NAME">o</span><span class="PUNC">=</span><span class="NAME">o</span><span class="PUNC">[</span><span class="NAME">d</span><span class="PUNC">[</span><span class="NAME">j</span><span class="PUNC">]</span><span class="PUNC">]</span><span class="PUNC">;</span><span class="PUNC">}</span><span class="PUNC">}</span><span class="KEYW">return</span><span class="WHIT"> </span><span class="NAME">o</span><span class="PUNC">;</span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>299</span> </span></pre></body></html>
